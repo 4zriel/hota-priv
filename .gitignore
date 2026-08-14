@@ -1,0 +1,32 @@
+# ============================================================
+#  Repo = folder mapy (Games/Daggerwin valley/)
+#  Strategia: ignorujemy WSZYSTKO, wpuszczamy tylko wymienione.
+#  Nowy, nieznany plik jest domyślnie ignorowany.
+#
+#  UWAGA: HotA nazywa autosejwy datą gry (111.GM4, 235.GM4,
+#  "[hotseat] 232.GM4"), a NIE "Auto Save". Dlatego blacklist
+#  po wzorcu nazwy nie działa - musi być whitelist.
+# ============================================================
+
+# 1. Ignoruj wszystko w rootcie repo
+/*
+
+# 2. Wyjątek - narzędzia i dokumentacja
+!.gitignore
+!.gitattributes
+!README.md
+!RAPORT.md
+!start.bat
+!start.sh
+!start.fish
+
+# 3. Wyjątek - katalog automatyzacji.
+#    Katalog trzeba odignorować jawnie: git nie wpuści plików
+#    z wykluczonego katalogu, nawet z negacją na samym pliku.
+!.github/
+
+# 4. Wyjątek - JEDEN wspólny sejw.
+#    GM[0-9] obejmuje GM1/GM2/GM4, żeby nie zależeć od tego,
+#    które rozszerzenie wybierze tryb hotseat.
+#    Wielkość liter musi zgadzać się co do znaku!
+!Daggerwin.GM[0-9]

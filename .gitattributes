@@ -1,0 +1,17 @@
+# Zapisy gry to binarki - bez tego Windows z core.autocrlf=true
+# przepisze bajty 0x0D0A w sejwie i gra go nie wczyta.
+*.GM1 binary
+*.GM2 binary
+*.GM3 binary
+*.GM4 binary
+*.CGM binary
+
+# Raport jest dopisywany przez CI - union scala równoległe wpisy bez konfliktu
+RAPORT.md merge=union
+
+# Skrypty shellowe zawsze z LF, .bat zawsze z CRLF
+*.sh text eol=lf
+*.fish text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.bat text eol=crlf

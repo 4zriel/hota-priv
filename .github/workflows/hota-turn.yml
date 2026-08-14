@@ -1,0 +1,74 @@
+name: HotA Turn Automation
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "RAPORT.md"
+
+# GITHUB_TOKEN jest domyślnie read-only w nowych repo -> bez tego push raportu padnie.
+permissions:
+  contents: write
+
+# Serializuje przebiegi: dwa pushe pod rząd nie będą się bić o RAPORT.md.
+concurrency:
+  group: hota-turn
+  cancel-in-progress: false
+
+jobs:
+  process-turn:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+    steps:
+      - name: Pobieranie repozytorium
+        uses: actions/checkout@v4
+        with:
+          # Pełna historia: push może zawierać więcej niż 1 commit, HEAD~1 to za mało.
+          fetch-depth: 0
+          ref: main
+
+      - name: Konfiguracja Pythona
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Generowanie raportu i weryfikacja plików
+        run: python .github/scripts/turn_report.py
+
+      - name: Zapisanie RAPORT.md do repozytorium
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- RAPORT.md; then
+            echo "Brak zmian w raporcie."
+            exit 0
+          fi
+          git config user.name "HotA Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add RAPORT.md
+          git commit -m "auto: aktualizacja RAPORT.md [skip ci]"
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push odrzucony (próba $attempt), pobieram zmiany i ponawiam..."
+            git pull --rebase --autostash origin main
+          done
+          echo "::error::Nie udało się wypchnąć RAPORT.md po 3 próbach."
+          exit 1
+
+      - name: Powiadomienie na Discordzie
+        # UWAGA: kontekst `secrets` NIE jest dostępny w `if` na poziomie stepu.
+        # Trzeba przełożyć sekret do env (na poziomie joba) i sprawdzać env.
+        if: ${{ env.DISCORD_WEBHOOK != '' }}
+        run: |
+          set -euo pipefail
+          if [ ! -f discord-payload.json ]; then
+            echo "Brak payloadu - pomijam."
+            exit 0
+          fi
+          curl --fail --silent --show-error \
+               -H "Content-Type: application/json" \
+               -X POST \
+               --data @discord-payload.json \
+               "$DISCORD_WEBHOOK"
