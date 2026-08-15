@@ -9,14 +9,14 @@ end
 
 function die
     printf '\n❌ BŁĄD: %s\n\n' "$argv[1]"
-    read -P "Naciśnij Enter, aby zamknąć... " _
+    read -P "Naciśnij Enter, aby zamknąć... "
     exit 1
 end
 
 function find_launcher
     set -l names "HD_Launcher.exe" "h3hota HD.exe" "h3hota.exe" "Heroes3 HD.exe"
     set -l dir "."
-    for _ in 1 2 3 4
+    for i in 1 2 3 4
         for name in $names
             if test -f "$dir/$name"
                 echo "$dir/$name"
@@ -77,7 +77,7 @@ end
 echo ""
 echo "⏸️  Launcher potrafi zamknąć się od razu po odpaleniu gry."
 echo "   Zapisz grę pod ustaloną nazwą, wyjdź z Heroes III, i DOPIERO WTEDY wróć tutaj."
-read -P "Naciśnij Enter, gdy tura jest zakończona i ZAPISANA... " _
+read -P "Naciśnij Enter, gdy tura jest zakończona i ZAPISANA... "
 
 echo ""
 hr
@@ -89,7 +89,7 @@ git add -A
 if git diff --cached --quiet
     echo "ℹ️  Brak nowych zapisów - nie ma czego wysyłać."
     echo "   Jeśli grałeś, upewnij się, że zapisałeś grę w TYM folderze."
-    read -P "Naciśnij Enter, aby zakończyć... " _
+    read -P "Naciśnij Enter, aby zakończyć... "
     exit 0
 end
 
@@ -116,4 +116,4 @@ echo ""
 hr
 echo "  ✅ SUKCES! Tura wysłana. Możesz zamknąć to okno."
 hr
-read -P "Naciśnij Enter, aby zakończyć... " _
+read -P "Naciśnij Enter, aby zakończyć... "
