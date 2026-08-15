@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Asynchroniczny hotseat HotA - pobranie tury, uruchomienie gry, wysłanie tury.
+# Asynchroniczny hotseat HotA - pobranie tury, instrukcja dla gracza, wysłanie tury.
 set -uo pipefail
 export LANG=C.UTF-8
 
@@ -11,21 +11,6 @@ die() {
     printf '\n❌ BŁĄD: %s\n\n' "$1"
     read -rp "Naciśnij Enter, aby zamknąć..."
     exit 1
-}
-
-find_launcher() {
-    local names=("HD_Launcher.exe" "h3hota HD.exe" "h3hota.exe" "Heroes3 HD.exe")
-    local dir="."
-    for _ in 1 2 3 4; do
-        for name in "${names[@]}"; do
-            if [ -f "$dir/$name" ]; then
-                printf '%s/%s\n' "$dir" "$name"
-                return 0
-            fi
-        done
-        dir="$dir/.."
-    done
-    return 1
 }
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
@@ -47,29 +32,22 @@ fi
 echo "✅ Zapisy zaktualizowane."
 echo ""
 hr
-echo "  2. URUCHAMIANIE HEROES III (ZRÓB TURĘ I ZAPISZ)..."
+echo "  2. ZRÓB SWOJĄ TURĘ I ZAPISZ GRĘ"
 hr
-
-launcher="$(find_launcher)" \
-    || die "nie znalazłem launchera gry (HD_Launcher.exe) w tym ani w nadrzędnych folderach.
-   Skrypt powinien leżeć w folderze z zapisami wewnątrz katalogu gry."
-
-if command -v wine >/dev/null 2>&1; then
-    runner=(wine)
-elif command -v portproton >/dev/null 2>&1; then
-    runner=(portproton)
-else
-    die "nie znaleziono Wine ani PortProton.
-   Zainstaluj Wine (np. sudo apt install wine) i spróbuj ponownie."
-fi
-
-echo "▶️  ${runner[0]} $launcher"
-"${runner[@]}" "$launcher" || echo "⚠️  Launcher zwrócił błąd - sprawdź, czy gra faktycznie wystartowała."
-
 echo ""
-echo "⏸️  Launcher potrafi zamknąć się od razu po odpaleniu gry."
-echo "   Zapisz grę pod ustaloną nazwą, wyjdź z Heroes III, i DOPIERO WTEDY wróć tutaj."
-read -rp "Naciśnij Enter, gdy tura jest zakończona i ZAPISANA... "
+echo "🎮 Odpal teraz grę (np. z Heroica), wczytaj zapis i wykonaj turę."
+echo "💾 Zapisz grę pod ustaloną nazwą w TYM folderze."
+echo ""
+echo "👉 Naciśnij [Enter], gdy tura jest zapisana i gotowa do wysłania,"
+echo "   lub [ESC] / [q], aby anulować i nic nie wysyłać."
+
+IFS= read -rsn1 key
+esc=$'\e'
+if [[ "$key" == "$esc" || "$key" == "q" || "$key" == "Q" ]]; then
+    echo ""
+    echo "⏹️  Anulowano — nic nie zostało wysłane na GitHuba."
+    exit 0
+fi
 
 echo ""
 hr
@@ -89,7 +67,12 @@ echo "Pliki do wysłania:"
 git diff --cached --name-only | sed 's/^/  • /'
 echo ""
 
-read -rp "Podaj krótki opis tury (np. Tura 12 - zdobyto zamek): " commit_msg
+read -rp "Podaj krótki opis tury (lub 'q' aby anulować): " commit_msg
+if [[ "$commit_msg" == "q" || "$commit_msg" == "Q" || "$commit_msg" == "anuluj" ]]; then
+    echo "⏹️  Anulowano — commit i push nie zostały wykonane."
+    exit 0
+fi
+
 if [ -z "${commit_msg// }" ]; then
     commit_msg="Wykonano turę - $(date '+%Y-%m-%d %H:%M')"
 fi

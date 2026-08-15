@@ -1,5 +1,5 @@
 #!/usr/bin/env fish
-# Asynchroniczny hotseat HotA - pobranie tury, uruchomienie gry, wysłanie tury.
+# Asynchroniczny hotseat HotA - pobranie tury, instrukcja dla gracza, wysłanie tury.
 
 cd (dirname (realpath (status --current-filename))); or exit 1
 
@@ -11,21 +11,6 @@ function die
     printf '\n❌ BŁĄD: %s\n\n' "$argv[1]"
     read -P "Naciśnij Enter, aby zamknąć... "
     exit 1
-end
-
-function find_launcher
-    set -l names "HD_Launcher.exe" "h3hota HD.exe" "h3hota.exe" "Heroes3 HD.exe"
-    set -l dir "."
-    for i in 1 2 3 4
-        for name in $names
-            if test -f "$dir/$name"
-                echo "$dir/$name"
-                return 0
-            end
-        end
-        set dir "$dir/.."
-    end
-    return 1
 end
 
 if not git rev-parse --is-inside-work-tree >/dev/null 2>&1
@@ -50,34 +35,22 @@ end
 echo "✅ Zapisy zaktualizowane."
 echo ""
 hr
-echo "  2. URUCHAMIANIE HEROES III (ZRÓB TURĘ I ZAPISZ)..."
+echo "  2. ZRÓB SWOJĄ TURĘ I ZAPISZ GRĘ"
 hr
-
-set -l launcher (find_launcher)
-if test -z "$launcher"
-    die "nie znalazłem launchera gry (HD_Launcher.exe) w tym ani w nadrzędnych folderach.
-   Skrypt powinien leżeć w folderze z zapisami wewnątrz katalogu gry."
-end
-
-set -l runner
-if type -q wine
-    set runner wine
-else if type -q portproton
-    set runner portproton
-else
-    die "nie znaleziono Wine ani PortProton.
-   Zainstaluj Wine (np. sudo apt install wine) i spróbuj ponownie."
-end
-
-echo "▶️  $runner $launcher"
-if not $runner "$launcher"
-    echo "⚠️  Launcher zwrócił błąd - sprawdź, czy gra faktycznie wystartowała."
-end
-
 echo ""
-echo "⏸️  Launcher potrafi zamknąć się od razu po odpaleniu gry."
-echo "   Zapisz grę pod ustaloną nazwą, wyjdź z Heroes III, i DOPIERO WTEDY wróć tutaj."
-read -P "Naciśnij Enter, gdy tura jest zakończona i ZAPISANA... "
+echo "🎮 Odpal teraz grę (np. z Heroica), wczytaj zapis i wykonaj turę."
+echo "💾 Zapisz grę pod ustaloną nazwą w TYM folderze."
+echo ""
+echo "👉 Naciśnij [Enter], gdy tura jest zapisana i gotowa do wysłania,"
+echo "   lub [ESC] / [q], aby anulować i nic nie wysyłać."
+
+read -s -n 1 -l key
+set -l esc (printf "\x1b")
+if test "$key" = "$esc" -o "$key" = "q" -o "$key" = "Q"
+    echo ""
+    echo "⏹️  Anulowano — nic nie zostało wysłane na GitHuba."
+    exit 0
+end
 
 echo ""
 hr
@@ -97,7 +70,12 @@ echo "Pliki do wysłania:"
 git diff --cached --name-only | sed 's/^/  • /'
 echo ""
 
-read -P "Podaj krótki opis tury (np. Tura 12 - zdobyto zamek): " commit_msg
+read -P "Podaj krótki opis tury (lub 'q' aby anulować): " commit_msg
+if test "$commit_msg" = "q" -o "$commit_msg" = "Q" -o "$commit_msg" = "anuluj"
+    echo "⏹️  Anulowano — commit i push nie zostały wykonane."
+    exit 0
+end
+
 if test -z (string trim -- "$commit_msg")
     set commit_msg "Wykonano turę - "(date "+%Y-%m-%d %H:%M")
 end
