@@ -9,3 +9,4 @@
 | 2026-08-15 16:00 | Komac | testowe wywolanie walki | ✅ tylko zapisy gry |
 | 2026-08-15 16:05 | Jakub Komacki | Update players.json - test full disco id | ✅ tylko zapisy gry |
 | 2026-08-15 16:13 | Jakub Komacki | Update players.json - testing with proper discord ID's | ✅ tylko zapisy gry |
+| 2026-08-15 21:59 | Rafał Kłosek | tura poszła - test w sumie? | ✅ tylko zapisy gry |
