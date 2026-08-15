@@ -73,11 +73,63 @@ echo Pliki do wyslania:
 git diff --cached --name-only
 echo.
 
+REM --- Menu: kto dostaje powiadomienie na Discordzie ---------------------
+REM Lista graczy siedzi w players.json (kolejnosc = kolejnosc tur).
+set "TARGET=nastepny"
+set /a PCOUNT=0
+
+if exist "players.json" (
+    for /f "usebackq tokens=1,* delims=:" %%A in (`findstr /c:"\"github\"" players.json`) do (
+        set "V=%%B"
+        set "V=!V:"=!"
+        set "V=!V:,=!"
+        set "V=!V: =!"
+        if not "!V!"=="" (
+            set /a PCOUNT+=1
+            set "PLOGIN[!PCOUNT!]=!V!"
+        )
+    )
+    set /a LCOUNT=0
+    for /f "usebackq tokens=1,* delims=:" %%A in (`findstr /c:"\"discord\"" players.json`) do (
+        set "V=%%B"
+        set "V=!V:"=!"
+        set "V=!V:,=!"
+        set "V=!V: =!"
+        set /a LCOUNT+=1
+        set "PLABEL[!LCOUNT!]=!V!"
+    )
+)
+
+if !PCOUNT! GTR 0 (
+    set /a NOFIGHT=PCOUNT+1
+    echo ===================================================
+    echo   Z kim walczysz? ^(kogo powiadomic na Discordzie^)
+    echo ===================================================
+    for /l %%I in (1,1,!PCOUNT!) do (
+        set "LAB=!PLABEL[%%I]!"
+        if "!LAB!"=="" set "LAB=!PLOGIN[%%I]!"
+        echo   %%I^) Walka z !LAB!
+    )
+    echo   !NOFIGHT!^) Brak walki, koniec tury ^(powiadomienie do nastepnego w kolejce^)
+    echo.
+    set "CH="
+    set /p "CH=Wybierz [1-!NOFIGHT!], domyslnie !NOFIGHT!: "
+    if not "!CH!"=="" (
+        if !CH! GEQ 1 if !CH! LEQ !PCOUNT! (
+            set "TARGET=!PLOGIN[%CH%]!"
+            for %%C in (!CH!) do set "TARGET=!PLOGIN[%%C]!"
+            echo [WALKA] Powiadomie: !TARGET!
+        )
+    )
+    if "!TARGET!"=="nastepny" echo [OK] Powiadomie nastepnego gracza w kolejce.
+    echo.
+)
+
 set "MSG="
 set /p "MSG=Podaj krotki opis tury (np. Tura 12 - zdobyto zamek): "
 if "!MSG!"=="" set "MSG=Wykonano ture - %DATE% %TIME:~0,5%"
 
-git commit -m "!MSG!"
+git commit -m "!MSG!" -m "HotA-Cel: !TARGET!"
 if errorlevel 1 (
     set "ERR=commit sie nie udal."
     goto :fail

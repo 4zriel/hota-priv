@@ -67,7 +67,56 @@ echo "Pliki do wysłania:"
 git diff --cached --name-only | sed 's/^/  • /'
 echo ""
 
-read -rp "Podaj krótki opis tury (lub 'q' aby anulować): " commit_msg
+# --- Menu: kto dostaje powiadomienie na Discordzie --------------------------
+# Lista graczy siedzi w players.json (kolejność = kolejność tur).
+PLAYERS_FILE="players.json"
+logins=()
+labels=()
+
+if [ -f "$PLAYERS_FILE" ]; then
+    while IFS=$'\t' read -r login label; do
+        [ -z "$login" ] && continue
+        logins+=("$login")
+        labels+=("$label")
+    done < <(
+        python3 - "$PLAYERS_FILE" <<'PY' 2>/dev/null || true
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as fh:
+    data = json.load(fh)
+for p in data.get("players", []):
+    print("%s\t%s" % (p.get("github", ""), p.get("discord") or p.get("name") or ""))
+PY
+    )
+fi
+
+# Fallback bez pythona: prosty grep na players.json.
+if [ "${#logins[@]}" -eq 0 ] && [ -f "$PLAYERS_FILE" ]; then
+    mapfile -t logins < <(grep -o '"github"[[:space:]]*:[[:space:]]*"[^"]*"' "$PLAYERS_FILE" | sed 's/.*"\([^"]*\)"$/\1/')
+    mapfile -t labels < <(grep -o '"discord"[[:space:]]*:[[:space:]]*"[^"]*"' "$PLAYERS_FILE" | sed 's/.*"\([^"]*\)"$/\1/')
+fi
+
+target="nastepny"
+if [ "${#logins[@]}" -gt 0 ]; then
+    hr
+    echo "  Z kim walczysz? (kogo powiadomić na Discordzie)"
+    hr
+    for i in "${!logins[@]}"; do
+        printf '  %d) Walka z %s\n' "$((i + 1))" "${labels[$i]:-${logins[$i]}}"
+    done
+    printf '  %d) Brak walki, koniec tury (powiadomienie do następnego w kolejce)\n' \
+        "$(( ${#logins[@]} + 1 ))"
+    echo ""
+    read -rp "Wybierz [1-$(( ${#logins[@]} + 1 ))], domyślnie $(( ${#logins[@]} + 1 )): " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#logins[@]}" ]; then
+        target="${logins[$((choice - 1))]}"
+        echo "⚔️  Powiadomię: ${labels[$((choice - 1))]:-$target}"
+    else
+        echo "➡️  Powiadomię następnego gracza w kolejce."
+    fi
+    echo ""
+fi
+
+read -rp "Podaj krótki opis tury (np. Tura 12 - zdobyto zamek) lub 'q' aby anulować: " commit_msg
 if [[ "$commit_msg" == "q" || "$commit_msg" == "Q" || "$commit_msg" == "anuluj" ]]; then
     echo "⏹️  Anulowano — commit i push nie zostały wykonane."
     exit 0
@@ -77,7 +126,7 @@ if [ -z "${commit_msg// }" ]; then
     commit_msg="Wykonano turę - $(date '+%Y-%m-%d %H:%M')"
 fi
 
-git commit -m "$commit_msg" || die "commit się nie udał."
+git commit -m "$commit_msg" -m "HotA-Cel: $target" || die "commit się nie udał."
 
 if ! git push origin main; then
     die "push odrzucony - ktoś wysłał turę w tym samym czasie.

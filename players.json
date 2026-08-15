@@ -1,0 +1,29 @@
+{
+  "_comment": "Kolejnosc graczy = kolejnosc tur. Format pol trzymaj po jednej linii - start.bat parsuje ten plik prostym findstr.",
+  "players": [
+    {
+      "name": "K0mac",
+      "github": "K0mac",
+      "discord": "@Komac",
+      "discord_id": ""
+    },
+    {
+      "name": "4zriel",
+      "github": "4zriel",
+      "discord": "@Azriel",
+      "discord_id": ""
+    },
+    {
+      "name": "radrmir",
+      "github": "radrmir",
+      "discord": "@radrmir",
+      "discord_id": ""
+    },
+    {
+      "name": "Krzysztof",
+      "github": "TODO-GITHUB-LOGIN-KRZYSZTOFA",
+      "discord": "@pokojowynoob",
+      "discord_id": ""
+    }
+  ]
+}
