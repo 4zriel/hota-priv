@@ -70,7 +70,45 @@ echo "Pliki do wysłania:"
 git diff --cached --name-only | sed 's/^/  • /'
 echo ""
 
-read -P "Podaj krótki opis tury (lub 'q' aby anulować): " commit_msg
+# --- Menu: kto dostaje powiadomienie na Discordzie --------------------------
+set -l players_file "players.json"
+set -l logins
+set -l labels
+
+if test -f "$players_file"
+    set logins (string replace -r '.*"([^"]*)"$' '$1' \
+        (grep -o '"github"[[:space:]]*:[[:space:]]*"[^"]*"' "$players_file"))
+    set labels (string replace -r '.*"([^"]*)"$' '$1' \
+        (grep -o '"discord"[[:space:]]*:[[:space:]]*"[^"]*"' "$players_file"))
+end
+
+set -l target "nastepny"
+set -l n (count $logins)
+
+if test $n -gt 0
+    hr
+    echo "  Z kim walczysz? (kogo powiadomić na Discordzie)"
+    hr
+    for i in (seq $n)
+        set -l lab $labels[$i]
+        test -n "$lab"; or set lab $logins[$i]
+        printf '  %d) Walka z %s\n' $i "$lab"
+    end
+    printf '  %d) Brak walki, koniec tury (powiadomienie do następnego w kolejce)\n' (math $n + 1)
+    echo ""
+    read -P "Wybierz [1-"(math $n + 1)"], domyślnie "(math $n + 1)": " -l choice
+    if string match -qr '^[0-9]+$' -- "$choice"; and test "$choice" -ge 1 -a "$choice" -le $n
+        set target $logins[$choice]
+        set -l lab $labels[$choice]
+        test -n "$lab"; or set lab $target
+        echo "⚔️  Powiadomię: $lab"
+    else
+        echo "➡️  Powiadomię następnego gracza w kolejce."
+    end
+    echo ""
+end
+
+read -P "Podaj krótki opis tury (np. Tura 12 - zdobyto zamek) lub 'q' aby anulować: " commit_msg
 if test "$commit_msg" = "q" -o "$commit_msg" = "Q" -o "$commit_msg" = "anuluj"
     echo "⏹️  Anulowano — commit i push nie zostały wykonane."
     exit 0
@@ -80,7 +118,7 @@ if test -z (string trim -- "$commit_msg")
     set commit_msg "Wykonano turę - "(date "+%Y-%m-%d %H:%M")
 end
 
-if not git commit -m "$commit_msg"
+if not git commit -m "$commit_msg" -m "HotA-Cel: $target"
     die "commit się nie udał."
 end
 
